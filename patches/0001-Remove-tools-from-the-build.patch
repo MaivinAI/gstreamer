@@ -1,0 +1,52 @@
+From ab0af67bacc7b28cc366db5a55055780f2a0dd88 Mon Sep 17 00:00:00 2001
+From: Your Name <you@example.com>
+Date: Fri, 20 Aug 2021 17:43:19 +0000
+Subject: [PATCH] Remove tools from the build
+
+---
+ Makefile.am  | 6 +-----
+ configure.ac | 5 +----
+ 2 files changed, 2 insertions(+), 9 deletions(-)
+
+diff --git a/Makefile.am b/Makefile.am
+index 46dc9d8..e558f3f 100755
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -26,10 +26,6 @@ if HAVE_GST_CHECK
+ COMPOSITOR_DIRS = plugins/compositor
+ endif
+ 
+-TOOLDIRS =    tools/                      \
+-              tools/grecorder             \
+-              tools/gplay2
+-
+ BASEDIRS = $(AIURDIRS) $(BEEPDIRS) $(VIDEO_CONVERT_DIRS) $(COMPOSITOR_DIRS)
+               
+ if PLATFORM_IS_MX6
+@@ -153,7 +149,7 @@ endif
+ 
+ FBDEVSINKDIRS =
+ 
+-SUBDIRS =  $(LIBSDIRS) $(BASEDIRS) $(V4LSINKDIRS) $(OVERLAYSINKDIRS) $(FBDEVSINKDIRS) $(VPUWRAPDIRS) $(WMA8ENC_DIR) $(MP3ENC_DIR) $(TOOLDIRS)
++SUBDIRS =  $(LIBSDIRS) $(BASEDIRS) $(V4LSINKDIRS) $(OVERLAYSINKDIRS) $(FBDEVSINKDIRS) $(VPUWRAPDIRS) $(WMA8ENC_DIR) $(MP3ENC_DIR) 
+ 
+ 
+ 
+diff --git a/configure.ac b/configure.ac
+index 5a0914c..5146933 100755
+--- a/configure.ac
++++ b/configure.ac
+@@ -428,10 +428,7 @@ plugins/vpu/Makefile
+ plugins/mp3enc/Makefile
+ plugins/videoconvert/Makefile
+ plugins/compositor/Makefile
+-plugins/fbdevsink/Makefile
+-tools/Makefile
+-tools/gplay2/Makefile
+-tools/grecorder/Makefile)
++plugins/fbdevsink/Makefile)
+ 
+ echo -e "Configure result:"
+ echo -e "\tEnabled features:$enabled_feature"
+-- 
+2.28.0

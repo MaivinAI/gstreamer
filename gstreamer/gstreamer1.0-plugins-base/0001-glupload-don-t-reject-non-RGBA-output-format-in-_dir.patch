@@ -1,0 +1,32 @@
+From a2df510b1cc6d1c45614cf7e58d9f203d15ea716 Mon Sep 17 00:00:00 2001
+From: Zan Dobersek <zdobersek@igalia.com>
+Date: Thu, 25 Mar 2021 10:27:30 +0100
+Subject: [PATCH] glupload: don't reject non-RGBA output format in
+ _directviv_upload_accept
+
+In case of a more advanced sink that can support RGBA but also different YUV
+formats, the initial output format for the glupload element might not be RGBA.
+In that case, rejecting inside the upload method for the DirectVIV uploader
+means picking a different uploader that won't do the job properly.
+
+If the rejecetion is removed, the upload proceeds and the pipeline is later
+reconfigured so that the DirectVIV uploader's RGBA-only output is respected,
+meaning the final sink will also move over from handling I420 to RGBA.
+---
+ gst-libs/gst/gl/gstglupload.c | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/gst-libs/gst/gl/gstglupload.c b/gst-libs/gst/gl/gstglupload.c
+index 50169adb0..079ed695e 100644
+--- a/gst-libs/gst/gl/gstglupload.c
++++ b/gst-libs/gst/gl/gstglupload.c
+@@ -1761,9 +1761,6 @@ _directviv_upload_accept (gpointer impl, GstBuffer * buffer, GstCaps * in_caps,
+ 
+ #if GST_GL_HAVE_PHYMEM
+   GstVideoInfo *in_info = &directviv->upload->priv->in_info;
+-  GstVideoFormat fmt = GST_VIDEO_INFO_FORMAT (&directviv->upload->priv->out_info);
+-  if (fmt != GST_VIDEO_FORMAT_RGBA)
+-    return FALSE;
+ 
+   if (n_mem != 1 || !mem || !gst_is_phys_memory (mem)) {
+     GstVideoFrame frame1, frame2;
