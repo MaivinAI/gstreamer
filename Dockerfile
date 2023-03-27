@@ -1,33 +1,28 @@
-ARG IMAGE_ARCH=linux/arm64
-ARG DOCKER_REGISTRY=torizon
-ARG BASE_NAME=weston-vivante
-ARG IMAGE_TAG=2.4.0
-FROM --platform=$IMAGE_ARCH $DOCKER_REGISTRY/$BASE_NAME:$IMAGE_TAG AS builder
+ARG DEBIAN=bullseye
+
+FROM maivin/debian:${DEBIAN} AS builder
+
+RUN apt-get -y update
 
 # Build dependencies
-RUN apt-get -y update && apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
     openssl cmake build-essential v4l-utils git pkg-config \
-    meson flex bison libglib2.0-dev libcap2-bin libcap-dev libxml2-dev \
-    && apt-get clean && apt-get autoremove && rm -rf /var/lib/apt/lists/*
+    meson flex bison libglib2.0-dev libcap2-bin libcap-dev libxml2-dev
 
-RUN apt-get -y update && apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
     iso-codes util-linux zlib1g-dev liborc-0.4-dev \
-    libegl-vivante1-dev \
-    libv4l-dev libdrm-dev libwayland-client0 libwayland-client++0 libwayland-client-extra++0 \
-    && apt-get clean && apt-get autoremove && rm -rf /var/lib/apt/lists/*
+    libv4l-dev libdrm-dev libwayland-client0 libwayland-client++0 libwayland-client-extra++0
 
-RUN apt-get -y update && apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
     libsrtp2-dev libnice-dev libwebrtc-audio-processing-dev \
-    libsoup2.4-dev libjson-glib-dev \
-    && apt-get clean && apt-get autoremove && rm -rf /var/lib/apt/lists/*
+    libsoup2.4-dev libjson-glib-dev
 
-RUN apt-get -y update && apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
     python3 python3-websockets python3-gi \
-    wget autotools-dev autoconf automake libtool libtool-bin \
-    && apt-get clean && apt-get autoremove && rm -rf /var/lib/apt/lists/*
+    wget autotools-dev autoconf automake libtool libtool-bin
 
 # for weston-vivante:2.2.0 use libsrt1-gnutls instead of libsrt1.4-gnutls
-RUN apt-get -y update && apt-get install -y --no-install-recommends \
+RUN apt-get install -y --no-install-recommends \
     libgdk-pixbuf2.0-0 libaa1 libavc1394-0 libcaca0 libdv4 libflac8 \
     libgdk-pixbuf2.0-0 libiec61883-0 libjack-jackd2-0 libmpg123-0 libraw1394-11 \
     libshout3 libsoup2.4-1 libtag1v5 libv4l-0 libass9 libbs2b0 libchromaprint1 \
@@ -38,12 +33,17 @@ RUN apt-get -y update && apt-get install -y --no-install-recommends \
     libopenexr25 libopenmpt0 librtmp1 libsbc1 libsndfile1 libsoundtouch1 \
     libspandsp2 libsrt1.4-gnutls libsrtp2-1 libusb-1.0-0 libusrsctp1 \
     libvo-aacenc0 libvo-amrwbenc0 libvulkan1 libwebrtc-audio-processing1 \
-    libwildmidi2 libzbar0 \
-    && apt-get clean && apt-get autoremove && rm -rf /var/lib/apt/lists/*
+    libwildmidi2 libzbar0
 
-RUN apt-get -y update && apt-get install -y --no-install-recommends \
-    gobject-introspection libgirepository1.0-dev vim bash-completion \
-    && apt-get clean && apt-get autoremove && rm -rf /var/lib/apt/lists/*
+RUN apt-get install -y --no-install-recommends \
+    gobject-introspection libgirepository1.0-dev vim bash-completion
+
+RUN apt-get install -y --no-install-recommends \
+    libdrm-dev \
+    libg2d-viv \
+    imx-gpu-viv-tools \
+    imx-gpu-viv-wayland \
+    imx-gpu-viv-wayland-dev
 
 # Clone NXP iMX fork of GStreamer, and dependencies
 # Use the branches and hashes from our BSP
@@ -52,6 +52,8 @@ RUN apt-get -y update && apt-get install -y --no-install-recommends \
 
 # linux-imx-headers_5.4.bb
 COPY linux-imx-headers /usr/include/imx/linux
+
+RUN mkdir -p /install/usr/lib/aarch64-linux-gnu
 
 # imx-vpu-hantro_1.20.0.bb
 WORKDIR /vpu
@@ -64,6 +66,7 @@ RUN wget https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/imx-vpu-hantro-1.20.0.bin && 
     make -j 1 DEST_DIR=./dest PLATFORM="IMX8MP" install && \
     cp dest/*so* /usr/lib/aarch64-linux-gnu/ && \
     cp -a dest/usr/include/hantro_dec /usr/include/
+RUN cp -a imx-vpu-hantro-1.20.0/dest/*so* /install/usr/lib/aarch64-linux-gnu/
 
 # imx-vpu-hantro-vc_1.3.0.bb
 WORKDIR /vpu
@@ -71,6 +74,7 @@ RUN wget https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/imx-vpu-hantro-vc-1.3.0.bin &
     chmod +x imx-vpu-hantro-vc-1.3.0.bin && \
     ./imx-vpu-hantro-vc-1.3.0.bin --auto-accept --force && \
     cd imx-vpu-hantro-vc-1.3.0 && cp -a usr/. /usr/
+RUN cp -a imx-vpu-hantro-vc-1.3.0/usr/lib/*so* /install/usr/lib/
 
 # imx-vpuwrap_4.5.7.bb
 WORKDIR /vpu
@@ -78,6 +82,7 @@ RUN git clone -b MM_04.05.07_2011_L5.4.70 https://github.com/NXP/imx-vpuwrap.git
     cd imx-vpuwrap && \
     git checkout ccaf10a0dae7c0d7d204bd64282598bc0e3bd661 && \
     ./autogen.sh --prefix=/usr && make && make install
+RUN make -C imx-vpuwrap DESTDIR=/install install
 
 # imx-parser_4.5.7
 WORKDIR /vpu
@@ -86,6 +91,7 @@ RUN wget https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/imx-parser-4.5.7.bin && \
     ./imx-parser-4.5.7.bin --auto-accept --force && \
     cd imx-parser-4.5.7 && \
     ./autogen.sh --prefix=/usr && ./configure --enable-armv8 --enable-fhw --prefix=/usr && make install
+RUN make -C imx-parser-4.5.7 DESTDIR=/install install
 
 # imx-codec_4.5.7.bb
 WORKDIR /vpu
@@ -94,6 +100,7 @@ RUN wget https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/imx-codec-4.5.7.bin && \
     ./imx-codec-4.5.7.bin --auto-accept --force && \
     cd imx-codec-4.5.7 && \
     ./autogen.sh --enable-armv8 --enable-fhw --enable-vpu --prefix=/usr && make install
+RUN make -C imx-codec-4.5.7 DESTDIR=/install install
 
 WORKDIR /gstreamer
 # Copy everything from our BSP. That includes patches, etc.
@@ -101,8 +108,11 @@ COPY gstreamer yocto
 # Also copy own patches specific for this container build
 COPY patches mypatches
 
+# RUN apt-get install -y --no-install-recommends \
+#     libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+
 # meta-toradex-nxp/backports/recipes-multimedia/gstreamer/gstreamer1.0_1.16.imx.bb
-RUN git clone -b MM_04.05.06_2008_L5.4.47 https://source.codeaurora.org/external/imx/gstreamer.git && \
+RUN git clone -b MM_04.05.06_2008_L5.4.47 https://github.com/nxp-imx/gstreamer.git && \
     cd gstreamer && \
     git checkout 8514bc61ccab208a65e387eab9347276a8e770e7 && \
     git apply ../yocto/gstreamer1.0/0001-gst-gstpluginloader.c-when-env-var-is-set-do-not-fal.patch && \
@@ -113,8 +123,8 @@ RUN git clone -b MM_04.05.06_2008_L5.4.47 https://source.codeaurora.org/external
     mkdir build && cd build && \
     meson \
         -Dprefix=/usr \
-        -Dgst_debug=false \
-        -Dtracer_hooks=false \
+        -Dgst_debug=true \
+        -Dtracer_hooks=true \
         -Dcheck=disabled \
         -Dtests=disabled -Dinstalled-tests=false \
         -Dvalgrind=disabled \
@@ -126,11 +136,11 @@ RUN git clone -b MM_04.05.06_2008_L5.4.47 https://source.codeaurora.org/external
         -Dexamples=disabled \
         -Ddbghelp=disabled \
         -Dgtk_doc=disabled .. && \
-    ninja install
+    ninja install && DESTDIR=/install ninja install
 
 # meta-toradex-nxp/backports/recipes-multimedia/gstreamer/gstreamer1.0-plugins-base_1.16.imx.bb
 WORKDIR /gstreamer
-RUN git clone -b MM_04.05.06_2008_L5.4.47 https://source.codeaurora.org/external/imx/gst-plugins-base.git && \
+RUN git clone -b MM_04.05.06_2008_L5.4.47 https://github.com/nxp-imx/gst-plugins-base.git && \
     cd gst-plugins-base && \
     git checkout 3c4aa2a58576d68f6e684efa58609665679c9969 && \
     git apply ../yocto/gstreamer1.0-plugins-base/0001-meson-build-gir-even-when-cross-compiling-if-introsp.patch && \
@@ -161,12 +171,11 @@ RUN git clone -b MM_04.05.06_2008_L5.4.47 https://source.codeaurora.org/external
         -Dvorbis=disabled \
         -Dgl-graphene=disabled \
         -Dextra_imx_incdir=/usr/include/imx .. && \
-    ninja install
-
+    ninja install && DESTDIR=/install ninja install
 
 # meta-toradex-nxp/backports/recipes-multimedia/gstreamer/gstreamer1.0-plugins-good_1.16.imx.bb
 WORKDIR /gstreamer
-RUN git clone -b MM_04.05.07_2011_L5.4.70 https://source.codeaurora.org/external/imx/gst-plugins-good.git && \
+RUN git clone -b MM_04.05.07_2011_L5.4.70 https://github.com/nxp-imx/gst-plugins-good.git && \
     cd gst-plugins-good && \
     git checkout 6005e8199ea19878f269b058ffbbbcaa314472d8 && \
     mkdir build && cd build && \
@@ -210,12 +219,11 @@ RUN git clone -b MM_04.05.07_2011_L5.4.70 https://source.codeaurora.org/external
         -Dtwolame=disabled \
         -Dwaveform=disabled \
         -Dextra_imx_incdir=/usr/include/imx .. && \
-    ninja install
-
+    ninja install && DESTDIR=/install ninja install
 
 # meta-toradex-nxp/backports/recipes-multimedia/gstreamer/gstreamer1.0-plugins-bad_1.16.imx.bb
 WORKDIR /gstreamer
-RUN git clone -b MM_04.05.07_2011_L5.4.70 https://source.codeaurora.org/external/imx/gst-plugins-bad.git && \
+RUN git clone -b MM_04.05.07_2011_L5.4.70 https://github.com/nxp-imx/gst-plugins-bad.git && \
     cd gst-plugins-bad && \
     git checkout cf7f2d0125424ce0d63ddc7f1eadc9ef71d10db1 && \
     git apply ../yocto/gstreamer1.0-plugins-bad/0001-ext-wayland-fix-meson-build-in-nxp-fork.patch && \
@@ -325,12 +333,11 @@ RUN git clone -b MM_04.05.07_2011_L5.4.70 https://source.codeaurora.org/external
         -Dx265=disabled \
         -Dzbar=disabled \
         -Dextra_imx_incdir=/usr/include/imx .. && \
-    ninja install
-
+    ninja install && DESTDIR=/install ninja install
 
 # meta-toradex-nxp/backports/recipes-multimedia/gstreamer/imx-gst1.0-plugin_4.5.7.imx.bb
 WORKDIR /gstreamer
-RUN git clone -b MM_04.05.07_2011_L5.4.70 https://source.codeaurora.org/external/imx/imx-gst1.0-plugin.git && \
+RUN git clone -b MM_04.05.07_2011_L5.4.70 https://github.com/nxp-imx/imx-gst1.0-plugin.git && \
     cd imx-gst1.0-plugin && \
     git checkout 659ec4947d6b1903d26e4ec9e40ae251a659935d && \
     cp -a /usr/include/imx/* /usr/include/ && \
@@ -353,40 +360,50 @@ RUN git clone -b MM_04.05.07_2011_L5.4.70 https://source.codeaurora.org/external
         --disable-x11 \
         PLATFORM="MX8" && \
     make -j$(nproc) all && make install
+RUN make -C imx-gst1.0-plugin DESTDIR=/install install
 
-FROM maivin/debian:bookworm
+WORKDIR /gstreamer
+ARG RTSP_VERSION=1.16.3
+RUN apt-get install -y --no-install-recommends xz-utils
+RUN curl -O https://gstreamer.freedesktop.org/src/gst-rtsp-server/gst-rtsp-server-${RTSP_VERSION}.tar.xz && xzcat gst-rtsp-server-${RTSP_VERSION}.tar.xz | tar xf -
+RUN cd gst-rtsp-server-${RTSP_VERSION} && \
+    sed -i 's,/test,/camera,' examples/test-launch.c && \
+    mkdir build && cd build && \
+    meson \
+        -Dprefix=/usr \
+        -Ddoc=disabled \
+        -Dtests=disabled .. && \
+    ninja install && DESTDIR=/install ninja install && \
+    mkdir -p /install/usr/bin && \
+    cp examples/test-launch /install/usr/bin/rtsp-launch
 
-RUN apt-get update && \
-    export DEBIAN_FRONTEND=noninteractive && \
-    apt-get -y install --no-install-recommends \
-        gstreamer1.0-tools \
-        gstreamer1.0-plugins-base \
-        gstreamer1.0-plugins-good
+RUN tar cf /install.tar -C /install .
 
-WORKDIR /usr/lib/aarch64-linux-gnu/gstreamer-1.0
-COPY --from=builder /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstvpu.so .
-COPY --from=builder /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstimxvideoconvert.so .
-COPY --from=builder /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstvideo4linux2.so .
-COPY --from=builder /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstmpegtsmux.so .
+FROM maivin/debian:${DEBIAN}
+WORKDIR /work
 
-WORKDIR /usr/lib/aarch64-linux-gnu
-COPY --from=builder /usr/lib/libfslvpuwrap.so.3 .
-COPY --from=builder /usr/lib/libhantro_vc8000e.so.1 .
-COPY --from=builder /usr/lib/aarch64-linux-gnu/libgstfsl-1.0.so.0 .
-COPY --from=builder /usr/lib/aarch64-linux-gnu/libcodec.so.1 .
-COPY --from=builder /usr/lib/aarch64-linux-gnu/libhantro.so.1 .
-COPY --from=builder /usr/lib/aarch64-linux-gnu/libg1.so.1 .
-COPY --from=builder /usr/lib/aarch64-linux-gnu/libgstallocators-1.0.so.0 .
-COPY --from=builder /usr/lib/aarch64-linux-gnu/libgstvideo-1.0.so.0 .
-COPY --from=builder /usr/lib/aarch64-linux-gnu/libgstmpegts-1.0.so.0 .
+RUN apt-get -y update && \
+    apt-get install -y --no-install-recommends \
+        libglib2.0-0 \
+        libcairo-gobject2 \
+        liborc-0.4-0 \
+        libv4l-0 \
+        libnice10 \
+        libsrtp2-1 \
+        libwebrtc-audio-processing1
+
+COPY --from=builder /install.tar .
+RUN tar xf install.tar -C / && rm install.tar
 
 ENV WIDTH=1920
 ENV HEIGHT=1080
 ENV FRAMERATE=30
 ENV MIRROR=1
 ENV FLIP=1
-ENV PORT=9000
+ENV PORT=8554
+
 WORKDIR /app
 COPY stream.sh .
+
 WORKDIR /work
 ENTRYPOINT /app/stream.sh
