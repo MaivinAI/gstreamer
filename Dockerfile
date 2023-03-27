@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
 
 ARG DEBIAN=bullseye
-ARG PLATFORM=arm64v8
+ARG PLATFORM=linux/arm64/v8
 
-FROM ${PLATFORM}/maivin/debian:${DEBIAN} AS builder
+FROM --platform=${PLATFORM} maivin/debian:${DEBIAN} AS builder
 
 RUN apt-get -y update
 
@@ -382,7 +382,7 @@ RUN cd gst-rtsp-server-${RTSP_VERSION} && \
 
 RUN tar cf /install.tar -C /install .
 
-FROM ${PLATFORM}/maivin/debian:${DEBIAN}
+FROM --platform=${PLATFORM} maivin/debian:${DEBIAN}
 WORKDIR /work
 
 RUN apt-get -y update && \
