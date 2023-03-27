@@ -13,5 +13,11 @@ Torizon Maivin 5.7.1.1.
 Run the following:
 
 ```
-docker run -it --rm --privileged -p 9000:9000 maivin/gstreamer
+docker run -it --rm --privileged --network host maivin/gstreamer:bullseye
+```
+
+Then from VideoLan Client (VLC) select `Media->Open Network Stream...` (CTRL-N) and use your Maivin's hostname with the URI below, replace the XXXXXX with your Maivin's serial number.
+
+```
+rtsp://verdin-imx8mp-XXXXXX:8554/camera
 ```
