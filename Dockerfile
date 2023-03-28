@@ -5,48 +5,39 @@ ARG PLATFORM=linux/arm64/v8
 
 FROM --platform=${PLATFORM} maivin/debian:${DEBIAN} AS builder
 
-RUN apt-get -y update
-
 # Build dependencies
-RUN apt-get install -y --no-install-recommends \
-    openssl cmake build-essential v4l-utils git pkg-config \
-    meson flex bison libglib2.0-dev libcap2-bin libcap-dev libxml2-dev
-
-RUN apt-get install -y --no-install-recommends \
-    iso-codes util-linux zlib1g-dev liborc-0.4-dev \
-    libv4l-dev libdrm-dev libwayland-client0 libwayland-client++0 libwayland-client-extra++0
-
-RUN apt-get install -y --no-install-recommends \
-    libsrtp2-dev libnice-dev libwebrtc-audio-processing-dev \
-    libsoup2.4-dev libjson-glib-dev
-
-RUN apt-get install -y --no-install-recommends \
-    python3 python3-websockets python3-gi \
-    wget autotools-dev autoconf automake libtool libtool-bin
-
-# for weston-vivante:2.2.0 use libsrt1-gnutls instead of libsrt1.4-gnutls
-RUN apt-get install -y --no-install-recommends \
-    libgdk-pixbuf2.0-0 libaa1 libavc1394-0 libcaca0 libdv4 libflac8 \
-    libgdk-pixbuf2.0-0 libiec61883-0 libjack-jackd2-0 libmpg123-0 libraw1394-11 \
-    libshout3 libsoup2.4-1 libtag1v5 libv4l-0 libass9 libbs2b0 libchromaprint1 \
-    libcurl3-gnutls libdc1394-25 libdca0 libde265-0 libdrm2 libdvdnav4 \
-    libdvdread8 libfaad2 libflite1 libfluidsynth2 libgme0 libilmbase25 libkate1 \
-    liblilv-0-0 libmjpegutils-2.1-0 libmms0 libmodplug1 libmpcdec6 \
-    libmpeg2encpp-2.1-0 libmplex2-2.1-0 libnice10 libofa0 libopenal1 \
-    libopenexr25 libopenmpt0 librtmp1 libsbc1 libsndfile1 libsoundtouch1 \
-    libspandsp2 libsrt1.4-gnutls libsrtp2-1 libusb-1.0-0 libusrsctp1 \
-    libvo-aacenc0 libvo-amrwbenc0 libvulkan1 libwebrtc-audio-processing1 \
-    libwildmidi2 libzbar0
-
-RUN apt-get install -y --no-install-recommends \
-    gobject-introspection libgirepository1.0-dev vim bash-completion
-
-RUN apt-get install -y --no-install-recommends \
-    libdrm-dev \
-    libg2d-viv \
-    imx-gpu-viv-tools \
-    imx-gpu-viv-wayland \
-    imx-gpu-viv-wayland-dev
+RUN apt-get -y update && \
+    apt-get install -y --no-install-recommends \
+        autoconf \
+        automake \
+        autotools-dev \
+        bison \
+        build-essential \
+        cmake \
+        flex \
+        git-core \
+        iso-codes \
+        libdrm-dev \
+        libglib2.0-dev \
+        libjson-glib-dev \
+        liborc-0.4-dev \
+        libsoup2.4-dev \
+        libtool \
+        libtool-bin \
+        libv4l-dev \
+        libwayland-client++0 \
+        libwayland-client-extra++0 \
+        libwayland-client0 \
+        libxml2-dev \
+        meson \
+        openssl \
+        pkg-config \
+        util-linux \
+        v4l-utils \
+        zlib1g-dev \
+        libsrtp2-dev \
+        libnice-dev \
+        libwebrtc-audio-processing-dev
 
 # Clone NXP iMX fork of GStreamer, and dependencies
 # Use the branches and hashes from our BSP
@@ -60,7 +51,7 @@ RUN mkdir -p /install/usr/lib/aarch64-linux-gnu
 
 # imx-vpu-hantro_1.20.0.bb
 WORKDIR /vpu
-RUN wget https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/imx-vpu-hantro-1.20.0.bin && \
+RUN curl -O https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/imx-vpu-hantro-1.20.0.bin && \
     chmod +x imx-vpu-hantro-1.20.0.bin && \
     ./imx-vpu-hantro-1.20.0.bin --auto-accept --force && \
     cd imx-vpu-hantro-1.20.0 && \
@@ -73,7 +64,7 @@ RUN cp -a imx-vpu-hantro-1.20.0/dest/*so* /install/usr/lib/aarch64-linux-gnu/
 
 # imx-vpu-hantro-vc_1.3.0.bb
 WORKDIR /vpu
-RUN wget https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/imx-vpu-hantro-vc-1.3.0.bin && \
+RUN curl -O https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/imx-vpu-hantro-vc-1.3.0.bin && \
     chmod +x imx-vpu-hantro-vc-1.3.0.bin && \
     ./imx-vpu-hantro-vc-1.3.0.bin --auto-accept --force && \
     cd imx-vpu-hantro-vc-1.3.0 && cp -a usr/. /usr/
@@ -89,7 +80,7 @@ RUN make -C imx-vpuwrap DESTDIR=/install install
 
 # imx-parser_4.5.7
 WORKDIR /vpu
-RUN wget https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/imx-parser-4.5.7.bin && \
+RUN curl -O https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/imx-parser-4.5.7.bin && \
     chmod +x imx-parser-4.5.7.bin && \
     ./imx-parser-4.5.7.bin --auto-accept --force && \
     cd imx-parser-4.5.7 && \
@@ -98,7 +89,7 @@ RUN make -C imx-parser-4.5.7 DESTDIR=/install install
 
 # imx-codec_4.5.7.bb
 WORKDIR /vpu
-RUN wget https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/imx-codec-4.5.7.bin && \
+RUN curl -O https://www.nxp.com/lgfiles/NMG/MAD/YOCTO/imx-codec-4.5.7.bin && \
     chmod +x imx-codec-4.5.7.bin && \
     ./imx-codec-4.5.7.bin --auto-accept --force && \
     cd imx-codec-4.5.7 && \
@@ -110,9 +101,6 @@ WORKDIR /gstreamer
 COPY gstreamer yocto
 # Also copy own patches specific for this container build
 COPY patches mypatches
-
-# RUN apt-get install -y --no-install-recommends \
-#     libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
 
 # meta-toradex-nxp/backports/recipes-multimedia/gstreamer/gstreamer1.0_1.16.imx.bb
 RUN git clone -b MM_04.05.06_2008_L5.4.47 https://github.com/nxp-imx/gstreamer.git && \
