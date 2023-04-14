@@ -1,14 +1,8 @@
-# torizon-gstreamer-imx
+# Maivin GStreamer for Docker
 
-This repository has an unofficial Debian Container for Torizon build that includes
-the NXP downstream fork of GStreamer. It has been created for use with Maivin
-due to the need of HW-accelerated H.264 encoding.
+This repository hosts the Maivin Debian Container for Torizon which includes the NXP downstream fork of GStreamer. It has been created for use with Maivin due to the need of HW-accelerated H.264 encoding.
 
-It is not meant to be used as a final solution and has not been validated for
-any use-case except the included stream.sh script on Verdin i.MX 8M Plus using
-Torizon Maivin 5.7.1.1.
-
-## How to use ##
+# Instructions
 
 Run the following:
 
@@ -21,3 +15,9 @@ Then from VideoLan Client (VLC) select `Media->Open Network Stream...` (CTRL-N) 
 ```
 rtsp://verdin-imx8mp-XXXXXX:8554/camera
 ```
+
+# Support
+
+Commercial Support is available from the [Au-Zone DeepViewML Support Site][1].
+
+[1]: https://support.deepviewml.com/hc/en-us/articles/12103941733005
